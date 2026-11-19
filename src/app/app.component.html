@@ -1,0 +1,106 @@
+<div class="layout">
+  <div #map class="map" [class.drawing]="mode() === 'draw'"></div>
+
+  <aside class="panel">
+    <h1>Land calculation</h1>
+
+    <div class="search">
+      <input
+        #q
+        type="search"
+        placeholder="Search a place or enter lat, lng"
+        aria-label="Search a place"
+        autocomplete="off"
+        (input)="onSearchInput(q.value)"
+        (keydown)="onSearchKey($event, q)"
+      />
+      @if (searching()) {
+        <span class="spinner" aria-label="Searching"></span>
+      }
+    </div>
+    @if (searchError()) {
+      <p class="error-text">{{ searchError() }}</p>
+    }
+    @if (results().length) {
+      <ul class="results">
+        @for (r of results(); track $index) {
+          <li>
+            <button type="button" [class.active]="$index === activeResult()" (click)="pick(r, q)">{{ r.name }}</button>
+          </li>
+        }
+      </ul>
+    }
+
+    <p class="hint">
+      @if (mode() === 'draw') {
+        Click on the map to add corners. Drag a corner to move it, right-click it to delete it.
+        Drag the small white dot in the middle of a side to bend that side (adds a corner).
+      } @else {
+        Editing: drag corners to adjust, or drag a side's middle dot to bend it. Map clicks don't add points.
+      }
+    </p>
+
+    <div class="actions">
+      <button (click)="toggleMode()" [class.primary]="mode() === 'draw'">
+        {{ mode() === 'draw' ? 'Finish drawing' : 'Resume drawing' }}
+      </button>
+      <button (click)="undo()" [disabled]="points().length === 0">Undo</button>
+      <button (click)="clear()" [disabled]="points().length === 0">Clear</button>
+      <button (click)="zoomToShape()" [disabled]="points().length < 2">Zoom to shape</button>
+    </div>
+
+    <section class="location">
+      <div class="actions">
+        <button (click)="toggleTracking()" [class.active]="tracking()">
+          {{ tracking() ? 'Stop location' : 'My location' }}
+        </button>
+        <button (click)="addMyPosition()" [disabled]="!position()">Add my position as corner</button>
+      </div>
+      @if (locationError()) {
+        <p class="error-text">{{ locationError() }}</p>
+      }
+      @if (position(); as pos) {
+        <p class="muted small">
+          {{ pos.lat.toFixed(6) }}, {{ pos.lng.toFixed(6) }} · accuracy ±{{ pos.accuracy.toFixed(0) }} m
+          @if (pos.accuracy > 10) {
+            <span class="warn">— low precision, wait for a better fix before adding a corner.</span>
+          }
+        </p>
+      } @else if (tracking()) {
+        <p class="muted small">Waiting for GPS…</p>
+      }
+    </section>
+
+    @if (m().selfIntersects) {
+      <section class="result error">
+        <strong>The sides cross each other.</strong>
+        The area can't be calculated. Drag corners so the border doesn't cross itself,
+        or clear and click the corners in order around the parcel.
+      </section>
+    } @else if (points().length >= 3) {
+      <section class="result">
+        <div class="big">{{ fmtHa(m().areaM2) }}</div>
+        <div>{{ fmtM2(m().areaM2) }}</div>
+        <div class="muted">{{ fmtHaACa(m().areaM2) }}</div>
+      </section>
+    } @else {
+      <section class="result muted">Add at least 3 points to get an area ({{ points().length }}/3).</section>
+    }
+
+    @if (m().sidesM.length) {
+      <section>
+        <h2>Perimeter: {{ fmtM(m().perimeterM) }}</h2>
+        <table>
+          <tbody>
+            @for (len of m().sidesM; track $index) {
+              <tr>
+                <td>{{ $index + 1 }} → {{ (($index + 1) % points().length) + 1 }}</td>
+                <td class="num">{{ fmtM(len) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+    }
+  </aside>
+</div>
