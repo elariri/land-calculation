@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild, computed, signal } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, HostListener, OnDestroy, ViewChild, computed, signal } from '@angular/core';
 import * as L from 'leaflet';
 import { FallbackTileLayer } from './fallback-tile-layer';
 import { LngLat, fmtHa, fmtHaACa, fmtM, fmtM2, measure } from './geo';
@@ -37,6 +37,9 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly position = signal<Position | null>(null);
   readonly locationError = signal<string | null>(null);
 
+  /** Side panel (search, results) shown; hide it to see the whole map. */
+  readonly panelOpen = signal(true);
+
   readonly fmtM2 = fmtM2;
   readonly fmtHa = fmtHa;
   readonly fmtHaACa = fmtHaACa;
@@ -54,6 +57,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   private positionLayer = L.layerGroup();
   private searchAbort?: AbortController;
   private searchTimer?: ReturnType<typeof setTimeout>;
+  /** Tells Leaflet when the map area changes size (panel hidden/shown, rotation, window resize). */
+  private resizeObserver?: ResizeObserver;
   /** Fly to the first GPS fix after tracking is turned on, then leave the view alone. */
   private centerOnNextFix = false;
 
@@ -101,6 +106,9 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.labelLayer.addTo(this.map);
     this.midpointLayer.addTo(this.map);
 
+    this.resizeObserver = new ResizeObserver(() => this.map.invalidateSize());
+    this.resizeObserver.observe(this.mapEl.nativeElement);
+
     this.map.on('locationfound', (e: L.LocationEvent) => this.onLocation(e));
     this.map.on('locationerror', (e: L.ErrorEvent) => {
       this.locationError.set(
@@ -119,9 +127,18 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     });
   }
 
+  /** Ask for confirmation before a reload/close throws away a drawn parcel (nothing is saved yet). */
+  @HostListener('window:beforeunload', ['$event'])
+  warnBeforeLeaving(e: BeforeUnloadEvent): void {
+    if (this.points().length === 0) return;
+    e.preventDefault();
+    e.returnValue = ''; // Older browsers need this to show the dialog.
+  }
+
   ngOnDestroy(): void {
     clearTimeout(this.searchTimer);
     this.searchAbort?.abort();
+    this.resizeObserver?.disconnect();
     this.map?.stopLocate();
     this.map?.remove();
   }

@@ -1,8 +1,26 @@
 <div class="layout">
-  <div #map class="map" [class.drawing]="mode() === 'draw'"></div>
+  <div class="map-wrap">
+    <div #map class="map" [class.drawing]="mode() === 'draw'"></div>
 
-  <aside class="panel">
-    <h1>Land calculation</h1>
+    @if (!panelOpen()) {
+      <button class="show-panel" (click)="panelOpen.set(true)" aria-label="Show panel">
+        <span class="icon">☰</span>
+        @if (points().length >= 3 && !m().selfIntersects) {
+          <span>{{ fmtHa(m().areaM2) }}</span>
+        } @else {
+          <span>Search & results</span>
+        }
+      </button>
+    }
+  </div>
+
+  <aside class="panel" [hidden]="!panelOpen()">
+    <header class="panel-head">
+      <h1>Land calculation</h1>
+      <button class="hide-panel" (click)="panelOpen.set(false)" aria-label="Hide panel" title="Hide panel to see the full map">
+        ✕
+      </button>
+    </header>
 
     <div class="search">
       <input
@@ -51,8 +69,20 @@
 
     <section class="location">
       <div class="actions">
-        <button (click)="toggleTracking()" [class.active]="tracking()">
-          {{ tracking() ? 'Stop location' : 'My location' }}
+        <button
+          class="icon-btn"
+          (click)="toggleTracking()"
+          [class.active]="tracking()"
+          [attr.aria-pressed]="tracking()"
+          [attr.aria-label]="tracking() ? 'Stop showing my location' : 'Show my location'"
+          [title]="tracking() ? 'Stop showing my location' : 'Show my location'"
+        >
+          <!-- "My location" target icon -->
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="2" />
+            <circle cx="12" cy="12" r="3" fill="currentColor" />
+            <path d="M12 1v4M12 19v4M1 12h4M19 12h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
         </button>
         <button (click)="addMyPosition()" [disabled]="!position()">Add my position as corner</button>
       </div>

@@ -3,14 +3,67 @@
   height: 100vh;
 }
 
-.map {
+.map-wrap {
   flex: 1;
+  position: relative;
+  min-height: 0;
+}
+
+.map {
+  position: absolute;
+  inset: 0;
   &.drawing {
     cursor: crosshair;
   }
 }
 
+/* Floating button to bring the panel back; shows the area so the result stays visible. */
+.show-panel {
+  position: absolute;
+  z-index: 1000; /* above Leaflet panes and controls */
+  bottom: 44px; /* clears the attribution line, which wraps to 2 lines on phones */
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 999px;
+  background: #166534;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+  .icon {
+    font-size: 1.1rem;
+  }
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  h1 {
+    margin: 0;
+  }
+}
+
+.hide-panel {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+}
+
 .panel {
+  &[hidden] {
+    display: none;
+  }
   width: 320px;
   padding: 16px;
   overflow-y: auto;
@@ -113,6 +166,14 @@ button {
 
 .location {
   margin-top: 10px;
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    padding: 0;
+    color: #374151;
+  }
   button.active {
     background: #dbeafe;
     border-color: #2563eb;
