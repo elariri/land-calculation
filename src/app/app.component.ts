@@ -1,5 +1,9 @@
 import { AfterViewInit, Component, ElementRef, HostListener, OnDestroy, ViewChild, computed, signal } from '@angular/core';
 import * as L from 'leaflet';
+// Patches the global Leaflet (window.L) to support map rotation; must load after 'leaflet'.
+// Import the built file explicitly: the package's "module" entry (src/index.js) is empty.
+import 'leaflet-rotate/dist/leaflet-rotate.js';
+import { CompassControl } from './compass-control';
 import { FallbackTileLayer } from './fallback-tile-layer';
 import { LngLat, fmtHa, fmtHaACa, fmtM, fmtM2, measure } from './geo';
 import { Place, parseLatLng, searchPlaces } from './search';
@@ -91,7 +95,16 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     });
 
     // Default view: Morocco.
-    this.map = L.map(this.mapEl.nativeElement, { center: [31.8, -7.1], zoom: 6, layers: [satellite] });
+    // Rotation (leaflet-rotate): two-finger twist on touch screens, Shift + mouse wheel on desktop.
+    // Its own 3-state rotate control is replaced by CompassControl (tap = back to north).
+    const rotateOptions = { rotate: true, bearing: 0, touchRotate: true, shiftKeyRotate: true, rotateControl: false };
+    this.map = L.map(this.mapEl.nativeElement, {
+      center: [31.8, -7.1],
+      zoom: 6,
+      layers: [satellite],
+      ...rotateOptions,
+    } as L.MapOptions);
+    new CompassControl({ position: 'topleft' }).addTo(this.map);
     // Labels sit above the imagery but below the drawn parcel and must not swallow clicks.
     const labelPane = this.map.createPane('overlayLabels');
     labelPane.style.zIndex = '350';
