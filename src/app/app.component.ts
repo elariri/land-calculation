@@ -106,7 +106,9 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     } as L.MapOptions);
     new CompassControl({ position: 'topleft' }).addTo(this.map);
     // Labels sit above the imagery but below the drawn parcel and must not swallow clicks.
-    const labelPane = this.map.createPane('overlayLabels');
+    // leaflet-rotate moves the tile/overlay panes into its 'rotatePane'; the label pane must live there
+    // too, or it stays below the (rotating) imagery and is hidden, and wouldn't rotate with the map.
+    const labelPane = this.map.createPane('overlayLabels', this.map.getPane('rotatePane'));
     labelPane.style.zIndex = '350';
     labelPane.style.pointerEvents = 'none';
     labels.addTo(this.map);
